@@ -14,7 +14,7 @@ module.exports = {
       .query(`
         SELECT * FROM users
         WHERE email = $1;
-      `,[email])
+      `,[email.toLowerCase()])
       .then((res) => {
         return res.rows[0];
       })
@@ -55,7 +55,7 @@ module.exports = {
       INSERT INTO users (name, email, password)
       VALUES ($1, $2, $3)
       RETURNING *
-      `,[user.name, user.email, user.password])
+      `,[user.name, user.email.toLowerCase(), user.password])
       .then((res) => {
         console.log('🟢 Add new user!');
         return res.rows[0];
@@ -91,7 +91,7 @@ module.exports = {
       .catch(err => {
         console.log(err.message);
       });
-  },
+    },
 
   /// Properties
   
