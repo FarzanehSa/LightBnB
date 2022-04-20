@@ -110,36 +110,39 @@ module.exports = {
     FROM properties
     LEFT JOIN property_reviews ON properties.id = property_id`;
     
-    const havingStatment = [`HAVING`,`AND`];
+    const whereStatment = [`WHERE`,`AND`];
     let index = 0;
   
     if (options.owner_id) {
       queryParams.push(`${(options.owner_id)}`);
       queryString += `\nWHERE owner_id = $${queryParams.length}`;
+      index = 1;
     }
   
     if (options.city) {
       queryParams.push(`%${(options.city)}%`.toLowerCase());
-      queryString += `\nWHERE LOWER(city) LIKE $${queryParams.length}`;
+      queryString += `\n${whereStatment[index]} LOWER(city) LIKE $${queryParams.length}`;
+      index = 1;
     }
     
-    queryString += `\nGROUP BY properties.id`;
     
     if (options.minimum_price_per_night) {
       queryParams.push(`${options.minimum_price_per_night}`);
-      queryString += `\n${havingStatment[index]} (cost_per_night / 100) >= $${queryParams.length}`;
-      index = 1;
-    }
-  
-    if (options.maximum_price_per_night) {
-      queryParams.push(`${options.maximum_price_per_night}`);
-      queryString += `\n${havingStatment[index]} (cost_per_night / 100) <= $${queryParams.length}`;
+      queryString += `\n${whereStatment[index]} (cost_per_night / 100) >= $${queryParams.length}`;
       index = 1;
     }
     
+    if (options.maximum_price_per_night) {
+      queryParams.push(`${options.maximum_price_per_night}`);
+      queryString += `\n${whereStatment[index]} (cost_per_night / 100) <= $${queryParams.length}`;
+      index = 1;
+    }
+    
+    queryString += `\nGROUP BY properties.id`;
+
     if (options.minimum_rating) {
       queryParams.push(`${options.minimum_rating}`);
-      queryString += `\n${havingStatment[index]} AVG(rating) >= $${queryParams.length}`;
+      queryString += `\nHAVING AVG(rating) >= $${queryParams.length}`;
       index = 1;
     }
     
@@ -170,9 +173,16 @@ module.exports = {
       INSERT INTO properties (owner_id, title, description, thumbnail_photo_url, cover_photo_url, cost_per_night, street, city, province, post_code, country, parking_spaces, number_of_bathrooms, number_of_bedrooms)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
-      `,[property.owner_id, property.title, property.description, property.thumbnail_photo_url, property.cover_photo_url, property.cost_per_night * 100, property.street, property.city, property.province, property.post_code, property.country, property.parking_spaces || 0, property.number_of_bathrooms || 0, property.number_of_bedrooms || 0])
+      `,[property.owner_id, property.title, property.description,
+        property.thumbnail_photo_url, property.cover_photo_url,
+        property.cost_per_night * 100, property.street, property.city,
+        property.province, property.post_code, property.country,
+        property.parking_spaces || 0,
+        property.number_of_bathrooms || 0,
+        property.number_of_bedrooms || 0])
       .then((res) => {
         console.log('🟢 Add new property!');
+        console.log(res.rows[0]);
         return res.rows[0];
       })
       .catch((err) => {
